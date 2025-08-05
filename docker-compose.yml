@@ -1,0 +1,18 @@
+version: '3.7'
+
+services:
+  postgres:
+    image: bitnami/postgresql:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=cashpilot
+      - POSTGRES_USER=docker
+      - POSTGRES_PASSWORD=docker
+    volumes:
+      - cashpilot_pg_data:/bitnami/postgresql
+networks:
+  prisma-network:
+
+volumes:
+  cashpilot_pg_data:
