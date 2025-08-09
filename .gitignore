@@ -3,3 +3,4 @@ node_*
 /src/generated/prisma
 .env
 .env.*
+*.txt

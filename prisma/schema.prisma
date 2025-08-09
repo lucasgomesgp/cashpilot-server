@@ -14,10 +14,137 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  password  String
-  imageUrl  String?
-  createdAt DateTime @default(now())
+  id          String       @id @default(cuid())
+  name        String
+  email       String       @unique
+  password    String
+  imageUrl    String?
+  createdAt   DateTime     @default(now())
+  saving      Saving?
+  loan        Loan?
+  investiment Investiment?
+  transaction Transaction?
+  creditCard  CreditCard?
+
+  @@map("users")
+}
+
+model Saving {
+  id          String   @id @default(cuid())
+  value       Decimal
+  description String
+  senderBank  Bank
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @unique
+
+  @@map("savings")
+}
+
+model Loan {
+  id             String   @id @default(cuid())
+  loanValue      Decimal
+  pursharseValue Decimal
+  description    String
+  category       Category
+  createdAt      DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+
+  @@map("loans")
+}
+
+model Investiment {
+  id          String               @id @default(cuid())
+  value       Decimal
+  description String
+  category    InvestimentsCategory
+  createdAt   DateTime             @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+
+  @@map("investiments")
+}
+
+model Transaction {
+  id          String     @id @default(cuid())
+  value       Decimal
+  description String
+  category    String
+  card        CreditCard @relation(fields: [creditCardId], references: [id])
+  createdAt   DateTime   @default(now())
+
+  user         User   @relation(fields: [userId], references: [id])
+  userId       String @unique
+  creditCardId String
+
+  @@map("transactions")
+}
+
+model CreditCard {
+  id          String        @id @default(cuid())
+  name        String
+  type        Cards
+  number      String
+  expiration  String
+  createdAt   DateTime      @default(now())
+  principal   Boolean
+  user        User          @relation(fields: [userId], references: [id])
+  userId      String        @unique
+  Transaction Transaction[]
+
+  @@map("credit_cards")
+}
+
+enum Bank {
+  BRADESCO
+  NUBANK
+  PAN
+  BB          @map("BANCO DO BRASIL")
+  INTER
+  SOFISA
+  C6
+  BMG
+  PICPAY
+  SANTANDER
+  BTG
+  PAGSEGURO
+  PAYPAL
+  MERCADOPAGO @map("MERCADO PAGO")
+  SAFRA
+  OUTRO
+}
+
+enum Category {
+  PESSOAL
+  SERVICOS
+  OUTRO
+}
+
+enum InvestimentsCategory {
+  TESOURO
+  CDB
+  LCI
+  ACOES
+  FII
+  ETF
+  PGBL
+  VGBL
+  CRIPTO
+  POUPANCA
+}
+
+enum Cards {
+  CLASSIC
+  GOLD
+  PLATINUM
+  BLACK
+  INFINITE
+  NACIONAL
+  INTERNACIONAL
+  ELOMAIS       @map("ELO MAIS")
+  ELOGRAFITE    @map("ELO GRAFITE")
+  ELONANQUIM    @map("ELO NANQUIM")
 }
