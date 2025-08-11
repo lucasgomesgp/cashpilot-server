@@ -12,6 +12,9 @@ const userSchema = z.object({
   email: z.string().email({ error: "Email inválido" }),
 });
 
+const userRecoverySchema = z.object({
+  email: z.string().email(),
+});
 export type UserSchemaInput = z.infer<typeof userSchemaBody>;
 export type UserSchemaResponse = z.infer<typeof userSchema>;
-export { userSchemaBody, userSchema };
+export { userSchemaBody, userSchema, userRecoverySchema };

@@ -1,6 +1,12 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { userSchema, userSchemaBody, UserSchemaResponse } from "./auth.schema";
-import { registerUser } from "./auth.controller";
+import {
+  userRecoverySchema,
+  userSchema,
+  userSchemaBody,
+  UserSchemaResponse,
+} from "./auth.schema";
+import { registerUser, resetPassword } from "./auth.controller";
+import z from "zod";
 
 export function authRoutes(app: FastifyInstance) {
   app.post(
@@ -14,5 +20,19 @@ export function authRoutes(app: FastifyInstance) {
       },
     },
     registerUser
+  );
+  app.post(
+    "/reset-password",
+    {
+      schema: {
+        body: userRecoverySchema,
+        response: {
+          200: z.object({
+            message: z.string(),
+          }),
+        },
+      },
+    },
+    resetPassword
   );
 }

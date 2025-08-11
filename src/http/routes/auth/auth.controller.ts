@@ -2,6 +2,10 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { UserSchemaInput } from "./auth.schema";
 import { prisma } from "../../../lib/prisma";
 import { hash } from "bcrypt";
+import { userExists } from "../../../utils/functions/user-exists";
+import { transporter } from "../../../lib/nodemailer";
+import env from "../../../env";
+import { htmlTemplate } from "../../../utils/functions/html-template";
 
 const SALT_ROUNDS = 10;
 
@@ -15,13 +19,9 @@ export async function registerUser(
   const hashedPassword = await hash(password, SALT_ROUNDS);
 
   try {
-    const userExists = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
-    if (userExists) {
-      return reply.code(409).send("User already exists.");
+    const userIsRegistered = await userExists(email);
+    if (userIsRegistered) {
+      return reply.code(409).send("Usuário já existe.");
     }
 
     const user = await prisma.user.create({
@@ -37,7 +37,43 @@ export async function registerUser(
       name: user.name,
     });
   } catch (err) {
-    console.log("Erro durante a criação", err);
-    return reply.code(400).send({ error: "User not created" });
+    return reply.code(400).send({ error: "Não foi possível criar o usuário" });
   }
 }
+
+export async function resetPassword(
+  req: FastifyRequest<{
+    Body: {
+      email: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  try {
+    const { email } = req.body;
+    const userIsRegistered = await userExists(email);
+    if (!userIsRegistered) {
+      return reply.code(409).send("Usuário inexistente.");
+    }
+    const { name, id } = userIsRegistered;
+    await transporter.sendMail({
+      from: {
+        name: "CashPilot",
+        address: env.MAIL_USER,
+      },
+      to: {
+        name: name,
+        address: email,
+      },
+      subject: "Recupere sua senha",
+      html: htmlTemplate(id),
+    });
+    return reply
+      .code(200)
+      .send({ message: "Email de recuperação enviado com sucesso!" });
+  } catch (err) {
+    return reply.code(400).send({ error: "Erro ao tentar resetar a senha!" });
+  }
+}
+
+export async function confirmEmail() {}
