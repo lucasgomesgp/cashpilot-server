@@ -5,9 +5,10 @@ import { hash } from "bcrypt";
 import { userExists } from "../../../utils/functions/user-exists";
 import { transporter } from "../../../lib/nodemailer";
 import env from "../../../env";
-import { htmlTemplate } from "../../../utils/functions/html-template-send-code";
+import { htmlTemplateCode } from "../../../utils/functions/html-template-send-code";
 import crypto from "crypto";
-import { date } from "zod";
+import { htmlTemplateLinkRecovery } from "../../../utils/functions/html-template-confirm-email";
+import path from "node:path";
 
 const SALT_ROUNDS = 10;
 
@@ -67,8 +68,15 @@ export async function sendEmailRecovery(
         name: name,
         address: email,
       },
+      attachments: [
+        {
+          filename: "logo.png",
+          path: path.join(__dirname, "../../../assets/logo.png"),
+          cid: "logo_cid",
+        },
+      ],
       subject: "Recupere sua senha",
-      html: htmlTemplate(id),
+      html: htmlTemplateLinkRecovery(id),
     });
     return reply
       .code(200)
@@ -103,8 +111,15 @@ export async function sendCode(
         name: name,
         address: email,
       },
+      attachments: [
+        {
+          filename: "logo.png",
+          path: path.join(__dirname, "../../../assets/logo.png"),
+          cid: "logo_cid",
+        },
+      ],
       subject: "Código de recuperação",
-      html: htmlTemplate(randomCodeGenerated),
+      html: htmlTemplateCode(randomCodeGenerated),
     });
     await prisma.passwordReset.create({
       data: {
