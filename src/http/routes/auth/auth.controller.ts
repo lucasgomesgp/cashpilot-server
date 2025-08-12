@@ -5,7 +5,8 @@ import { hash } from "bcrypt";
 import { userExists } from "../../../utils/functions/user-exists";
 import { transporter } from "../../../lib/nodemailer";
 import env from "../../../env";
-import { htmlTemplate } from "../../../utils/functions/html-template";
+import { htmlTemplate } from "../../../utils/functions/html-template-send-code";
+import crypto from "crypto";
 
 const SALT_ROUNDS = 10;
 
@@ -76,4 +77,39 @@ export async function resetPassword(
   }
 }
 
-export async function confirmEmail() {}
+export async function sendCode(
+  req: FastifyRequest<{
+    Body: {
+      email: string;
+    };
+  }>,
+  reply: FastifyReply
+) {
+  try {
+    const { email } = req.body;
+    const userIsRegistered = await userExists(email);
+    if (!userIsRegistered) {
+      return reply.code(409).send("Usuário inexistente.");
+    }
+    const { name } = userIsRegistered;
+    const randomCodeGenerated = crypto.randomInt(100000, 1000000).toString();
+    await transporter.sendMail({
+      from: {
+        name: "CashPilot",
+        address: env.MAIL_USER,
+      },
+      to: {
+        name: name,
+        address: email,
+      },
+      subject: "Código de recuperação",
+      html: htmlTemplate(randomCodeGenerated),
+    });
+    console.log(randomCodeGenerated);
+    return reply.code(200).send({ message: "Código de recuperação enviado!" });
+  } catch (err) {
+    return reply
+      .code(400)
+      .send({ error: "Erro ao tentar enviar o código de recuperação!" });
+  }
+}

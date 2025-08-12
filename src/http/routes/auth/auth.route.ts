@@ -5,7 +5,7 @@ import {
   userSchemaBody,
   UserSchemaResponse,
 } from "./auth.schema";
-import { registerUser, resetPassword } from "./auth.controller";
+import { registerUser, resetPassword, sendCode } from "./auth.controller";
 import z from "zod";
 
 export function authRoutes(app: FastifyInstance) {
@@ -34,5 +34,19 @@ export function authRoutes(app: FastifyInstance) {
       },
     },
     resetPassword
+  );
+  app.post(
+    "/send-code",
+    {
+      schema: {
+        body: userRecoverySchema,
+        response: {
+          200: z.object({
+            message: z.string(),
+          }),
+        },
+      },
+    },
+    sendCode
   );
 }
