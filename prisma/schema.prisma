@@ -29,6 +29,15 @@ model User {
   @@map("users")
 }
 
+model PasswordReset {
+  id          String   @id @default(cuid())
+  code        String
+  expiratesAt DateTime
+  email       String
+
+  @@map("password_reset")
+}
+
 model Saving {
   id          String   @id @default(cuid())
   value       Decimal

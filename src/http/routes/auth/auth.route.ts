@@ -1,11 +1,16 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { FastifyInstance } from "fastify";
 import {
+  userChangePasswordSchema,
   userRecoverySchema,
   userSchema,
   userSchemaBody,
-  UserSchemaResponse,
 } from "./auth.schema";
-import { registerUser, resetPassword, sendCode } from "./auth.controller";
+import {
+  registerUser,
+  sendEmailRecovery,
+  sendCode,
+  changePassword,
+} from "./auth.controller";
 import z from "zod";
 
 export function authRoutes(app: FastifyInstance) {
@@ -22,7 +27,7 @@ export function authRoutes(app: FastifyInstance) {
     registerUser
   );
   app.post(
-    "/reset-password",
+    "/recovery-email",
     {
       schema: {
         body: userRecoverySchema,
@@ -33,7 +38,7 @@ export function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    resetPassword
+    sendEmailRecovery
   );
   app.post(
     "/send-code",
@@ -48,5 +53,17 @@ export function authRoutes(app: FastifyInstance) {
       },
     },
     sendCode
+  );
+  app.post(
+    "/change-password",
+    {
+      schema: {
+        body: userChangePasswordSchema,
+        response: {
+          201: userSchema,
+        },
+      },
+    },
+    changePassword
   );
 }

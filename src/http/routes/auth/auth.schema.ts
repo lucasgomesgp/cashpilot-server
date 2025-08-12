@@ -15,6 +15,20 @@ const userSchema = z.object({
 const userRecoverySchema = z.object({
   email: z.string().email(),
 });
+const userChangePasswordSchema = z.object({
+  email: z.string().email(),
+  password: z.string(),
+  confirmPassword: z.string(),
+  code: z.string(),
+});
+
 export type UserSchemaInput = z.infer<typeof userSchemaBody>;
+export type UserChangeSchemaInput = z.infer<typeof userChangePasswordSchema>;
 export type UserSchemaResponse = z.infer<typeof userSchema>;
-export { userSchemaBody, userSchema, userRecoverySchema };
+
+export {
+  userSchemaBody,
+  userSchema,
+  userRecoverySchema,
+  userChangePasswordSchema,
+};

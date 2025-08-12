@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { UserSchemaInput } from "./auth.schema";
+import { UserChangeSchemaInput, UserSchemaInput } from "./auth.schema";
 import { prisma } from "../../../lib/prisma";
 import { hash } from "bcrypt";
 import { userExists } from "../../../utils/functions/user-exists";
@@ -7,6 +7,7 @@ import { transporter } from "../../../lib/nodemailer";
 import env from "../../../env";
 import { htmlTemplate } from "../../../utils/functions/html-template-send-code";
 import crypto from "crypto";
+import { date } from "zod";
 
 const SALT_ROUNDS = 10;
 
@@ -42,7 +43,7 @@ export async function registerUser(
   }
 }
 
-export async function resetPassword(
+export async function sendEmailRecovery(
   req: FastifyRequest<{
     Body: {
       email: string;
@@ -105,11 +106,67 @@ export async function sendCode(
       subject: "Código de recuperação",
       html: htmlTemplate(randomCodeGenerated),
     });
-    console.log(randomCodeGenerated);
+    await prisma.passwordReset.create({
+      data: {
+        code: randomCodeGenerated,
+        expiratesAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        email,
+      },
+    });
     return reply.code(200).send({ message: "Código de recuperação enviado!" });
   } catch (err) {
     return reply
       .code(400)
       .send({ error: "Erro ao tentar enviar o código de recuperação!" });
+  }
+}
+
+export async function changePassword(
+  req: FastifyRequest<{
+    Body: UserChangeSchemaInput;
+  }>,
+  reply: FastifyReply
+) {
+  const { email, password, confirmPassword, code } = req.body;
+  if (password !== confirmPassword) {
+    return reply.code(400).send({ message: "Senhas incompatíveis!" });
+  }
+  const user = await userExists(email);
+  if (!user) {
+    return reply.code(400).send({ message: "Este usuário não existe!" });
+  }
+  try {
+    const codeChangeIsValid = await prisma.passwordReset.findFirst({
+      where: {
+        email,
+        code,
+        expiratesAt: { gt: new Date() }, // Check if is in time (gt = Greater Then/maior que)
+      },
+    });
+    if (!codeChangeIsValid) {
+      return reply.code(400).send({
+        message:
+          "Infelizmente seu código já inspirou, envie outro para recomeçar o processo!",
+      });
+    }
+    const hashedPassword = await hash(password, SALT_ROUNDS);
+
+    const userUpdated = await prisma.user.update({
+      where: {
+        email,
+      },
+      data: {
+        password: hashedPassword,
+      },
+    });
+    return reply.code(201).send({
+      id: userUpdated.id,
+      email: userUpdated.email,
+      name: userUpdated.name,
+    });
+  } catch (err) {
+    return reply
+      .code(400)
+      .send({ message: "Ocorreu um erro ao tentar modificar sua senha!" });
   }
 }
