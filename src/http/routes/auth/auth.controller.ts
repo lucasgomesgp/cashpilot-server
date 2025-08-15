@@ -1,7 +1,11 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { UserChangeSchemaInput, UserSchemaInput } from "./auth.schema";
+import {
+  UserChangeSchemaInput,
+  UserLoginInput,
+  UserSchemaInput,
+} from "./auth.schema";
 import { prisma } from "../../../lib/prisma";
-import { hash } from "bcrypt";
+import { compare, hash } from "bcrypt";
 import { userExists } from "../../../utils/functions/user-exists";
 import { transporter } from "../../../lib/nodemailer";
 import env from "../../../env";
@@ -184,4 +188,53 @@ export async function changePassword(
       .code(400)
       .send({ message: "Ocorreu um erro ao tentar modificar sua senha!" });
   }
+}
+
+export async function loginUser(
+  req: FastifyRequest<{
+    Body: UserLoginInput;
+  }>,
+  reply: FastifyReply
+) {
+  try {
+    const { email, password } = req.body;
+    const user = await userExists(email);
+    if (!user?.email || !user.name) {
+      return reply.code(401).send({ message: "Usuário não encontrado!" });
+    }
+    const passwordIsMatch = await compare(password, user.password);
+
+    if (!passwordIsMatch) {
+      return reply.code(401).send({ message: "Email ou senha inválida!" });
+    }
+    const payloadToken = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    };
+
+    const token = req.jwt.sign(payloadToken);
+
+    reply.setCookie("access_token", token, {
+      path: "/",
+      httpOnly: true,
+      secure: true,
+    });
+    return reply.code(200).send({ accessToken: token });
+  } catch (err) {
+    return reply
+      .code(400)
+      .send({ message: "Erro ao tentar buscar o usuário!" });
+  }
+}
+
+export async function getUsers(req: FastifyRequest, reply: FastifyReply) {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+  return reply.code(200).send(users);
 }

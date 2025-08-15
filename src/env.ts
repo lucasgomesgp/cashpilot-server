@@ -7,6 +7,7 @@ const envSchema = z.object({
   MAIL_USER: z.string(),
   MAIL_PORT: z.coerce.number(),
   MAIL_PASSWORD: z.string(),
+  SECRET: z.string(),
 });
 
 const env = envSchema.parse(process.env);
